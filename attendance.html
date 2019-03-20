@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport"
+		  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<link rel="stylesheet" href="./css/weui.min.css">
+	<link rel="stylesheet" href="./css/jquery-weui.min.css">
+	<title>Calendar</title>
+</head>
+<style>
+	* {margin: 0; user-select: none;}
+	input,textarea {user-select: auto;}
+	.flex {display: flex; align-items: center; width: 100%; box-sizing: border-box;}
+	.container {flex-direction: column;}
+	.container .con-h {height: 43px; justify-content: center; background-color: #42e2eb;}
+	.container .con-h .con-h-content span {margin: 0 5px; color: #fff;}
+
+	.container .con-b {justify-content: center; height: 200px; background-color: #33cbd5;}
+	.container .con-b .con-b-content {background-color: #fff; width: 100px; height: 100px; border-radius: 50%; flex-direction: column; justify-content: center;}
+	.container .con-b .con-b-content span:last-child {color: #f77409;}
+	.container .con-b .con-b-content span:last-child b {color: #000;}
+
+	.container .con-f {flex-direction: column; padding: 20px 10px;}
+	.container .con-f .con-f-head {justify-content: space-around; background-color: rgba( 200, 200, 200, 0.1); border-radius: 10px 10px 0 0;}
+	.container .con-f .con-f-head span {width: 10%; text-align: center;}
+	.container .con-f .con-f-body ul {flex-direction: column; justify-content: space-around; height: 350px; list-style: none; background-color: rgba( 200, 200, 200, 0.1); line-height: 35px; border-radius: 0 0 10px 10px;}
+	.container .con-f .con-f-body ul li {height: 15%;}
+	.container .con-f .con-f-body ul li span {width: 10%; text-align: center; border-radius: 50%; margin: 0 8px;}
+	.container .con-f .con-f-body ul li span:nth-last-of-type(odd) {background-color: rgb(253, 148, 87); color: #fff;}
+	.container .con-f .con-f-body ul li span:nth-last-of-type(even) {background-color: #17e6f5; color: #fff;}
+	.container .con-f .con-f-foot {justify-content: flex-end;}
+	.container .con-f .con-f-foot div {width: 10%; justify-content: space-around;}
+	.container .con-f .con-f-foot div span {width: 10px; height: 10px; border-radius: 50%; display: inline-block;}
+	.container .con-f .con-f-foot div:nth-child(1) span {background-color: rgb(253, 148, 87);}
+	.container .con-f .con-f-foot div:nth-child(2) span {background-color: #0e21ca;}
+	.container .con-f .con-f-foot div:nth-child(3) span {background-color: #09b62f;}
+	.container .con-f .con-f-foot div:nth-child(4) span {background-color: #17e6f5;}
+	.container .con-f .con-f-foot div:nth-child(5) span {background-color: #75f190;}
+	.container .con-f .con-f-foot div b {font-size: 14px;}
+</style>
+<body>
+	<div class="flex container" id="app">
+		<div class="flex con-h">
+			<div class="con-h-content">
+				<span onclick="reduce()">&lt;</span><span><span id="year"></span>年</span><span><span id="month"></span>月</span><span onclick="increase()">&gt;</span>
+			</div>
+		</div>
+		<div class="con-b flex">
+			<div class="con-b-content flex">
+				<span>本月出勤</span>
+				<span>共<b id="attendance-count"></b>天</span>
+			</div>
+		</div>
+		<div class="con-f flex">
+			<div class="con-f-head flex">
+				<span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+			</div>
+			<div class="con-f-body flex">
+				<ul class="flex" id="day-container">
+					<li class="flex templ-li" style="display: none;">
+						<span class="templ-span"></span>
+					</li>
+				</ul>
+			</div>
+			<div class="con-f-foot flex">
+				<div class="flex"><span></span><b>缺</b></div>
+				<div class="flex"><span></span><b>假</b></div>
+				<div class="flex"><span></span><b>全</b></div>
+				<div class="flex"><span></span><b>出</b></div>
+				<div class="flex"><span></span><b>进</b></div>
+			</div>
+		</div>
+	</div>
+</body>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script>
+	var reduce, increase;
+	$(function () {
+		var $templLi = $('.templ-li');
+		var $templSpan = $('.templ-span');
+		var $year = $('#year');
+		var $month = $('#month');
+		var odate = new Date();
+		var year = odate.getFullYear();
+		var month = odate.getMonth() + 1;
+		var $frag = $(document.createDocumentFragment());
+		var $dayContainer = $('#day-container');
+		var getDats = function (year, month) {
+			var arr = [];
+			var date = new Date(year, month, 0);
+			var date1 = new Date(year, month - 1, 1);
+			arr.push(date.getDate(), date1.getDay());
+			return arr;
+		};
+		$year.text(year);
+		$month.text(month);
+		var dayArr = [];
+		dayArr = getDats(year, month);
+		var renderCalendar = function () {
+			var startDay = 1;
+			var row = dayArr[1] > 4 && dayArr[0] > 28 ? 6 : 5;
+			for (var i = 0; i < row; i++) {
+				var $cloneLi = $templLi.clone(true);
+				$cloneLi.show();
+				$cloneLi.empty();
+				for (var j = 0; j < 7; j++) {
+					var $cloneSpan = $templSpan.clone(true);
+					if (!i) {
+						if (j >= dayArr[1]) {
+							$cloneSpan.text(startDay++);
+						}
+					} else {
+						$cloneSpan.text(startDay++);
+					}
+
+					$cloneLi.append($cloneSpan);
+					if (startDay > dayArr[0]) {
+						break;
+					}
+				}
+				$frag.append($cloneLi);
+			}
+			$dayContainer.empty().append($frag);
+			console.log(dayArr)
+		};
+		renderCalendar();
+		reduce = function () {
+			var previous = +$month.text() - 1;
+			if (!previous) {
+				$year.text(+$year.text() - 1);
+				$month.text(12);
+			} else {
+				$month.text(previous);
+			}
+			dayArr = getDats(year, previous);
+			renderCalendar();
+		};
+		increase = function () {
+			var next = +$month.text() + 1;
+			if (next === 13) {
+				$year.text(+$year.text() + 1);
+				$month.text(1);
+			} else {
+				$month.text(next);
+			}
+			dayArr = getDats(year, next);
+			renderCalendar();
+		};
+	});
+</script>
+</html>
